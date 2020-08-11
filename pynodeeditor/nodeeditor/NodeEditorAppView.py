@@ -2,11 +2,10 @@ from PySide2.QtWidgets import *
 from PySide2.QtGui import *
 from PySide2.QtCore import *
 
-from NodeScene import Scene
-from NodeNode import Node
-from NodeSocket import Socket
-from NodeEdge import Edge, EDGE_TYPE_BEZIER
-from NodeGraphicsView import QDMGraphicsView
+from nodeeditor.NodeScene import Scene
+from nodeeditor.NodeNode import Node
+from nodeeditor.NodeEdge import Edge, EDGE_TYPE_BEZIER
+from nodeeditor.NodeGraphicsView import QDMGraphicsView
 
 
 class NodeEditorAppView(QWidget):
@@ -18,7 +17,7 @@ class NodeEditorAppView(QWidget):
         self.initUI()
 
     def initUI(self):
-        self.setGeometry(200, 200, 800, 600)
+        #self.setGeometry(200, 200, 800, 600)
 
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -31,8 +30,8 @@ class NodeEditorAppView(QWidget):
         self.view = QDMGraphicsView(self.scene.graphicsScene, self)
         self.layout.addWidget(self.view)
 
-        self.setWindowTitle("Node Editor")
-        self.show()
+        # self.setWindowTitle("Node Editor")
+        # self.show()
 
         # self.addDebugContent()
 

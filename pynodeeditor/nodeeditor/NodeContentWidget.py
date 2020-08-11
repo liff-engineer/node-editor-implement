@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from NodeSerializable import Serializable
+from nodeeditor.NodeSerializable import Serializable
 from PySide2.QtWidgets import *
 
 

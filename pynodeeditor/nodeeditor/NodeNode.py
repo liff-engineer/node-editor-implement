@@ -1,19 +1,17 @@
-from collections import OrderedDict
-from NodeSerializable import Serializable
-from NodeGraphicsNode import QDMGraphicsNode
-from NodeContentWidget import QDMNodeContentWidget
-from NodeSocket import *
+from nodeeditor.NodeGraphicsNode import QDMGraphicsNode
+from nodeeditor.NodeContentWidget import QDMNodeContentWidget
+from nodeeditor.NodeSocket import *
 
 
 class Node(Serializable):
     def __init__(self, scene, title="Undefined Node", inputs=[], outputs=[]):
         super().__init__()
+        self._title = title
         self.scene = scene
-
-        self.title = title
 
         self.content = QDMNodeContentWidget(self)
         self.graphicsNode = QDMGraphicsNode(self)
+        self.title = title
 
         self.scene.addNode(self)
         self.scene.graphicsScene.addItem(self.graphicsNode)
@@ -26,13 +24,15 @@ class Node(Serializable):
         counter = 0
 
         for item in inputs:
-            socket = Socket(self, counter, LEFT_BOTTOM, socket_type=item)
+            socket = Socket(self, counter, LEFT_BOTTOM,
+                            socket_type=item, multi_edges=False)
             counter += 1
             self.inputs.append(socket)
 
         counter = 0
         for item in outputs:
-            socket = Socket(self, counter, RIGHT_TOP, socket_type=item)
+            socket = Socket(self, counter, RIGHT_TOP,
+                            socket_type=item, multi_edges=True)
             counter += 1
             self.outputs.append(socket)
 
@@ -45,6 +45,15 @@ class Node(Serializable):
 
     def setPos(self, x, y):
         self.graphicsNode.setPos(x, y)
+
+    @property
+    def title(self):
+        return self._title
+
+    @title.setter
+    def title(self, value):
+        self._title = value
+        self.graphicsNode.title = self._title
 
     def getSocketPosition(self, index, position):
         x = 0 if (position in (LEFT_TOP, LEFT_BOTTOM)
@@ -61,13 +70,16 @@ class Node(Serializable):
 
     def updateConnectedEdges(self):
         for socket in self.inputs + self.outputs:
-            if socket.hasEdge():
-                socket.edge.updatePositions()
+            for edge in socket.edges:
+                edge.updatePositions()
 
     def remove(self):
         for socket in (self.inputs + self.outputs):
-            if socket.hasEdge():
-                socket.edge.remove()
+            for edge in socket.edges:
+                if DEBUG:
+                    print(
+                        "    - removing from socket:", socket, "edge:", edge)
+                edge.remove()
 
         self.scene.graphicsScene.removeItem(self.graphicsNode)
         self.scene.removeNode(self)
@@ -90,5 +102,31 @@ class Node(Serializable):
             ('content', self.content.serialize())
         ])
 
-    def deserialize(self, data, hashmap={}):
-        return False
+    def deserialize(self, data, hashmap={}, restore_id=True):
+        if restore_id:
+            self.id = data['id']
+        hashmap[data['id']] = self
+
+        self.setPos(data['pos_x'], data['pos_y'])
+        self.title = data['title']
+
+        data['inputs'].sort(
+            key=lambda socket: socket['index']+socket['position']*10000)
+        data['outputs'].sort(
+            key=lambda socket: socket['index']+socket['position']*10000)
+
+        self.inputs = []
+        for socket_data in data['inputs']:
+            new_socket = Socket(
+                node=self, index=socket_data['index'], position=socket_data['position'], socket_type=socket_data['socket_type'])
+            new_socket.deserialize(socket_data, hashmap, restore_id)
+            self.inputs.append(new_socket)
+
+        self.outputs = []
+        for socket_data in data['outputs']:
+            new_socket = Socket(
+                node=self, index=socket_data['index'], position=socket_data['position'], socket_type=socket_data['socket_type'])
+            new_socket.deserialize(socket_data, hashmap, restore_id)
+            self.outputs.append(new_socket)
+
+        return True
