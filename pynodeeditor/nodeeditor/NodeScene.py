@@ -18,12 +18,41 @@ class Scene(Serializable):
         self.scene_height = 64000
 
         self._has_been_modified = False
+        self._last_selected_items = []
+
         self._has_been_modified_listeners = []
+        self._item_selected_listeners = []
+        self._items_deselected_listeners = []
 
         self.initUI()
 
         self.history = SceneHistory(self)
         self.clipboard = SceneClipBoard(self)
+
+        self.graphicsScene.itemSelected.connect(self.onItemSelected)
+        self.graphicsScene.itemsDeselected.connect(self.onItemsDeselected)
+
+    def onItemSelected(self):
+        current_selected_items = self.getSelectedItems()
+        if current_selected_items != self._last_selected_items:
+            self._last_selected_items = current_selected_items
+            self.history.storeHistory("Selection Changed")
+            for callback in self._item_selected_listeners:
+                callback()
+
+    def onItemsDeselected(self):
+        self.resetLastSelectedStates()
+        if self._last_selected_items != []:
+            self._last_selected_items = []
+            self.history.storeHistory("Deselected Everything")
+            for callback in self._items_deselected_listeners:
+                callback()
+
+    def isModified(self):
+        return self.has_been_modified
+
+    def getSelectedItems(self):
+        return self.graphicsScene.selectedItems()
 
     @property
     def has_been_modified(self):
@@ -46,6 +75,20 @@ class Scene(Serializable):
         self.graphicsScene = QDMGraphicsScene(self)
         self.graphicsScene.setGraphicsScene(
             self.scene_width, self.scene_height)
+
+    def addItemSelectedListener(self, callback):
+        self._item_selected_listeners.append(callback)
+
+    def addItemsDeselectedListener(self, callback):
+        self._items_deselected_listeners.append(callback)
+
+    # custom flag to detect node or edge has been selected....
+
+    def resetLastSelectedStates(self):
+        for node in self.nodes:
+            node.graphicsNode._last_selected_state = False
+        for edge in self.edges:
+            edge.graphicsEdge._last_selected_state = False
 
     def addNode(self, node):
         self.nodes.append(node)

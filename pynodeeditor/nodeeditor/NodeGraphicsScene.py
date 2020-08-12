@@ -6,6 +6,9 @@ from PySide2.QtGui import *
 
 
 class QDMGraphicsScene(QGraphicsScene):
+    itemSelected = Signal()
+    itemsDeselected = Signal()
+
     def __init__(self, scene, parent=None):
         super().__init__(parent)
 
